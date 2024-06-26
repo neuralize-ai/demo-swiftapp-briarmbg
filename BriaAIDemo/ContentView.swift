@@ -17,9 +17,12 @@ struct ContentView: View {
     @State private var loadTimeMs: Double? = nil
     @State private var computeUnit: MLComputeUnits? = nil
     @State private var loading: Bool = false
+    
+    @State private var imageModel = ImageModel()
 
     let image = UIImage(contentsOfFile: Bundle.main.path(forResource: "example_input", ofType: "jpg")!)!
     let logo = UIImage(contentsOfFile: Bundle.main.path(forResource: "neuralize-logo", ofType: "png")!)!
+
     
     var body: some View {
         VStack {
@@ -41,48 +44,60 @@ struct ContentView: View {
             }
             
             HStack(spacing: 30) {
-                Button("Run with ANE") {
-                    outputImage = nil
-                    loadTimeMs = nil
-                    inferenceTimeMs = nil
-                    loading = true
-                    computeUnit = MLComputeUnits.all
-                    Task {
-                        let output = await predict(computeUnit: computeUnit!)
-                        outputImage = output.0
-                        loadTimeMs = output.1
-                        inferenceTimeMs = output.2
-                        loading = false
-                    }
-                }
-                Button("Run with GPU") {
-                    outputImage = nil
-                    loadTimeMs = nil
-                    inferenceTimeMs = nil
-                    loading = true
-                    computeUnit = MLComputeUnits.cpuAndGPU
-                    Task {
-                        let output = await predict(computeUnit: computeUnit!)
-                        outputImage = output.0
-                        loadTimeMs = output.1
-                        inferenceTimeMs = output.2
-                        loading = false
-                    }
-                }
-                Button("Run with CPU") {
+                Button("Run with VisionRequest") {
                     outputImage = nil
                     loadTimeMs = nil
                     inferenceTimeMs = nil
                     loading = true
                     computeUnit = MLComputeUnits.cpuOnly
                     Task {
-                        let output = await predict(computeUnit: computeUnit!)
-                        outputImage = output.0
-                        loadTimeMs = output.1
-                        inferenceTimeMs = output.2
-                        loading = false
+                        await imageModel.loadModelAndPredictImage(image: image, computeUnit: computeUnit!)
                     }
+                    
+                    loading = false
                 }
+//                Button("Run with ANE") {
+//                    outputImage = nil
+//                    loadTimeMs = nil
+//                    inferenceTimeMs = nil
+//                    loading = true
+//                    computeUnit = MLComputeUnits.all
+//                    Task {
+//                        let output = await predict(computeUnit: computeUnit!)
+//                        outputImage = output.0
+//                        loadTimeMs = output.1
+//                        inferenceTimeMs = output.2
+//                        loading = false
+//                    }
+//                }
+//                Button("Run with GPU") {
+//                    outputImage = nil
+//                    loadTimeMs = nil
+//                    inferenceTimeMs = nil
+//                    loading = true
+//                    computeUnit = MLComputeUnits.cpuAndGPU
+//                    Task {
+//                        let output = await predict(computeUnit: computeUnit!)
+//                        outputImage = output.0
+//                        loadTimeMs = output.1
+//                        inferenceTimeMs = output.2
+//                        loading = false
+//                    }
+//                }
+//                Button("Run with CPU") {
+//                    outputImage = nil
+//                    loadTimeMs = nil
+//                    inferenceTimeMs = nil
+//                    loading = true
+//                    computeUnit = MLComputeUnits.cpuOnly
+//                    Task {
+//                        let output = await predict(computeUnit: computeUnit!)
+//                        outputImage = output.0
+//                        loadTimeMs = output.1
+//                        inferenceTimeMs = output.2
+//                        loading = false
+//                    }
+//                }
                 
             }.padding()
             
@@ -113,6 +128,11 @@ struct ContentView: View {
     }
 }
 
+extension ContentView {
+    func completionHandler(image: UIImage) {
+        print("completion Handler received")
+    }
+}
 #Preview {
     ContentView()
 }

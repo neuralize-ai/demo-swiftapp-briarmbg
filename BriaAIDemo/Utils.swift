@@ -1,150 +1,128 @@
 import CoreML
 import UIKit
 import Accelerate
+import Vision
 
 
-func pixelBufferFromImage(image: UIImage) -> CVPixelBuffer? {
-    guard let cgImage = image.cgImage else { return nil }
+typealias ImageHandler = (UIImage) -> Void
 
-    let frameSize = CGSize(width: cgImage.width, height: cgImage.height)
-    var pixelBuffer: CVPixelBuffer?
-
-    let options: [String: Any] = [
-        kCVPixelBufferCGImageCompatibilityKey as String: true,
-        kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
-    ]
-    let status = CVPixelBufferCreate(kCFAllocatorDefault,
-                                     Int(frameSize.width),
-                                     Int(frameSize.height),
-                                     kCVPixelFormatType_32ARGB,
-                                     options as CFDictionary,
-                                     &pixelBuffer)
-
-    guard status == kCVReturnSuccess, let buffer = pixelBuffer else { return nil }
-
-    CVPixelBufferLockBaseAddress(buffer, [])
-
-    let pixelData = CVPixelBufferGetBaseAddress(buffer)
-    let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-    let context = CGContext(data: pixelData,
-                            width: Int(frameSize.width),
-                            height: Int(frameSize.height),
-                            bitsPerComponent: 8,
-                            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
-                            space: rgbColorSpace,
-                            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
-
-    context?.draw(cgImage, in: CGRect(origin: .zero, size: frameSize))
-
-    CVPixelBufferUnlockBaseAddress(buffer, [])
-
-    return buffer
-}
-
-
-func createGrayscaleImage(from array: MLMultiArray) -> CGImage? {
-    guard array.dataType == .float32, let shape = array.shape as? [Int], shape.count == 2 else {
-        print("The multi-array must be 2D and contain float values.")
-        return nil
-    }
+struct ImageModel {
     
-    let height = shape[0]
-    let width = shape[1]
-    let bytesPerPixel = 1
-    let bitsPerComponent = 8
-    let bytesPerRow = width * bytesPerPixel
-    let bitmapInfo = CGImageAlphaInfo.none.rawValue
-
-    guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: bitsPerComponent,
-                                  bytesPerRow: bytesPerRow, space: CGColorSpaceCreateDeviceGray(),
-                                  bitmapInfo: bitmapInfo) else {
-        print("Failed to create context.")
-        return nil
-    }
-
-    guard let buffer = context.data else {
-        print("Context data could not be accessed.")
-        return nil
-    }
     
-    let pixelBuffer = buffer.bindMemory(to: UInt8.self, capacity: width * height)
-    for y in 0..<height {
-        for x in 0..<width {
-            let value = array[y * width + x].floatValue
-            let pixelIndex = y * width + x
-            pixelBuffer[pixelIndex] = UInt8(value)
+    var originalWidth: Int? = nil
+    var originalHeight: Int? = nil
+    var isRunning: Bool = false
+    
+    var inputImage: UIImage? = nil
+    var outputMask: UIImage? = nil
+    
+    public func resizeOutputMask(cgImage: CGImage) -> CGImage {
+        
+        let bitsPerComponent = cgImage.bitsPerComponent
+        let bytesPerRow = cgImage.bytesPerRow
+        let colorSpace = cgImage.colorSpace!
+        let bitmapInfo = cgImage.bitmapInfo
+        
+        let resizeContext = CGContext(data: nil, width: originalWidth!, height: originalHeight!, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo.rawValue)!
+        
+        resizeContext.interpolationQuality = CGInterpolationQuality.high
+        resizeContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: originalWidth!, height: originalHeight!))
+        
+        let resizedMaskCg = resizeContext.makeImage()!
+        return resizedMaskCg
+    }
+
+
+//    private func visionRequestHandler(_ request: VNRequest, error: Error?) {
+//        print("handler called")
+//        let output =  request.results!.first! as! VNPixelBufferObservation
+//        let ciImage = CIImage(cvPixelBuffer: output.pixelBuffer)
+//        let context = CIContext()
+//        let cgImage = context.createCGImage(ciImage, from: ciImage.extent)!
+//        let imageResized = resizeOutputMask(cgImage: cgImage)
+//        handler(imageResized)
+//    }
+
+
+    public mutating func loadModelAndPredictImage(image: UIImage, computeUnit: MLComputeUnits) async -> UIImage? {
+        
+        if isRunning {
+            return nil
         }
-    }
+        
+        inputImage = image
+        isRunning = true
+        originalWidth = image.cgImage!.width
+        originalHeight = image.cgImage!.height
+        
+        let config = MLModelConfiguration()
+        config.computeUnits = computeUnit
+        let model = try! bria_rmbg_coreml_3(configuration: config)
+        guard let visionModel = try? VNCoreMLModel(for: model.model) else {
+            fatalError("App failed to create a `VNCoreMLModel` instance.")
+        }
+        
+        // create vision request
+        let imageRequest = VNCoreMLRequest(model: visionModel)
+        imageRequest.imageCropAndScaleOption = VNImageCropAndScaleOption.scaleFill
+        
+        let handler = VNImageRequestHandler(cgImage: image.cgImage!)
+        let requests: [VNRequest] = [imageRequest]
 
-    return context.makeImage()
-}
-
-public func predict(computeUnit: MLComputeUnits) async -> (CGImage, Double, Double) {
-    let config = MLModelConfiguration()
-    config.computeUnits = computeUnit
-    
-    let loadStart = Date()
-    let model = try! bria_rmbg_coreml(configuration: config)
-    let loadEnd = Date()
-    let loadTimeMs = loadEnd.timeIntervalSince(loadStart) * 1000
-    
-    
-    let imageUrl = Bundle.main.url(forResource: "example_input", withExtension: "jpg")!
-    
-    
-    let imageData = try! Data(contentsOf: imageUrl)
-    let image = UIImage(data: imageData)!
-    
-    let inferenceStart = Date()
-    let pixelBuffer = pixelBufferFromImage(image: image)!
-    let prediction = try! await model.prediction(input: pixelBuffer)
-    let mask = createGrayscaleImage(from: prediction.var_2306)
-    let answer = image.cgImage!.masking(mask!)!
-    let inferenceEnd = Date()
-    let inferenceTimeMs = inferenceEnd.timeIntervalSince(inferenceStart) * 1000
-    
-    
-    return (answer, loadTimeMs, inferenceTimeMs)
-
-
-}
-
-func serializePixelBufferToFile(pixelBuffer: CVPixelBuffer, fileURL: URL) -> Bool {
-    // Lock the pixel buffer base address
-    CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-    
-    // Get the pixel buffer attributes
-    let width = CVPixelBufferGetWidth(pixelBuffer)
-    let height = CVPixelBufferGetHeight(pixelBuffer)
-    let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-    
-    // Get the base address of the pixel buffer
-    guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
-        return false
-    }
-    
-    // Calculate the total size of the pixel buffer data
-    let dataSize = height * bytesPerRow
-    
-    // Create a Data object from the pixel buffer's raw data
-    let data = Data(bytes: baseAddress, count: dataSize)
-    
-    // Unlock the pixel buffer base address
-    CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
-    
-    // Write the data to the specified file URL
-    do {
-        try data.write(to: fileURL)
-        return true
-    } catch {
-        print("Failed to write pixel buffer data to file: \(error)")
-        return false
+        // Start the image classification request.
+        do {
+            try await handler.perform(requests)
+            let output =  requests[0].results!.first! as! VNPixelBufferObservation
+            let ciImage = CIImage(cvPixelBuffer: output.pixelBuffer)
+            let context = CIContext()
+            let cgImage = context.createCGImage(ciImage, from: ciImage.extent)!
+            let imageResized = resizeOutputMask(cgImage: cgImage)
+            let answer = image.cgImage!.masking(imageResized)
+            isRunning = false
+            return UIImage(cgImage: answer!)
+            
+        } catch {
+            print("Failed to perform text recognition: \(error)")
+            return nil
+        }
+        
     }
 }
 
-// Function to get the Documents directory URL
-func getDocumentsDirectory() -> URL {
-    let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-    return paths[0]
-}
+
+//
+//public func predict(computeUnit: MLComputeUnits) async -> (CGImage, Double, Double) {
+//    let config = MLModelConfiguration()
+//    config.computeUnits = computeUnit
+//    
+//    let loadStart = Date()
+//    let model = try! bria_rmbg_coreml(configuration: config)
+//    
+//    // Create a Vision instance using the image classifier's model instance.
+//    
+//    let loadEnd = Date()
+//    let loadTimeMs = loadEnd.timeIntervalSince(loadStart) * 1000
+//    
+//    
+//    let imageUrl = Bundle.main.url(forResource: "example_input", withExtension: "jpg")!
+//    let imageData = try! Data(contentsOf: imageUrl)
+//    let image = UIImage(data: imageData)!
+//    
+//    let inferenceStart = Date()
+//    // todo: use VNImageRequestHandler
+//    let pixelBuffer = pixelBufferFromImage(image: image)!
+//    let prediction = try! await model.prediction(input: pixelBuffer)
+//    let mask = createGrayscaleImage(from: prediction.var_2306)
+//    let answer = image.cgImage!.masking(mask!)!
+//    let inferenceEnd = Date()
+//    let inferenceTimeMs = inferenceEnd.timeIntervalSince(inferenceStart) * 1000
+//    
+//    
+//    return (answer, loadTimeMs, inferenceTimeMs)
+//}
+//
+//// Function to get the Documents directory URL
+//func getDocumentsDirectory() -> URL {
+//    let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+//    return paths[0]
+//}
