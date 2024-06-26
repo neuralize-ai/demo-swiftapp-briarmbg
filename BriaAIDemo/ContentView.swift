@@ -20,22 +20,23 @@ struct ContentView: View {
     
     @State private var imageModel = ImageModel()
 
-    let image = UIImage(contentsOfFile: Bundle.main.path(forResource: "example_input", ofType: "jpg")!)!
-    let logo = UIImage(contentsOfFile: Bundle.main.path(forResource: "neuralize-logo", ofType: "png")!)!
+    
+    let images = [
+        UIImage(contentsOfFile: Bundle.main.path(forResource: "example_car", ofType: "jpg")!)!,
+        UIImage(contentsOfFile: Bundle.main.path(forResource: "example_input", ofType: "jpg")!)!,
+        UIImage(contentsOfFile: Bundle.main.path(forResource: "example_tree", ofType: "jpg")!)!,
+    ]
+    @State private var index = 0
 
     
     var body: some View {
         VStack {
-            Image(uiImage: logo)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 100, height: 100)
             Text("https://www.runlocal.ai")
             if outputImage == nil {
-                Image(uiImage: image)
+                Image(uiImage: images[index])
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 500, height: 500)
+                    .frame(width: 400, height: 400)
             } else {
                 Image(uiImage: UIImage(cgImage: outputImage!))
                     .resizable()
@@ -43,70 +44,66 @@ struct ContentView: View {
                     .frame(width: 400, height: 400)
             }
             
-            HStack(spacing: 30) {
-                Button("Run with VisionRequest") {
+            HStack(spacing: 10) {
+                Button("Run with ANE") {
+                    outputImage = nil
+                    loadTimeMs = nil
+                    inferenceTimeMs = nil
+                    loading = true
+                    computeUnit = MLComputeUnits.all
+                    Task {
+                        let output = await imageModel.loadModelAndPredictImage(image: images[index], computeUnit: computeUnit!)
+                        DispatchQueue.main.async {
+                            self.outputImage = output.0?.cgImage
+                            self.loadTimeMs = output.1
+                            self.inferenceTimeMs = output.2
+                            self.loading = false
+                        }
+                    }
+                }
+                Button("Run with GPU") {
+                    outputImage = nil
+                    loadTimeMs = nil
+                    inferenceTimeMs = nil
+                    loading = true
+                    computeUnit = MLComputeUnits.cpuAndGPU
+                    Task {
+                        let output = await imageModel.loadModelAndPredictImage(image: images[index], computeUnit: computeUnit!)
+                        DispatchQueue.main.async {
+                            self.outputImage = output.0?.cgImage
+                            self.loadTimeMs = output.1
+                            self.inferenceTimeMs = output.2
+                            self.loading = false
+                        }
+                    }
+                }
+                Button("Run with CPU") {
                     outputImage = nil
                     loadTimeMs = nil
                     inferenceTimeMs = nil
                     loading = true
                     computeUnit = MLComputeUnits.cpuOnly
                     Task {
-                        await imageModel.loadModelAndPredictImage(image: image, computeUnit: computeUnit!)
+                        let output = await imageModel.loadModelAndPredictImage(image: images[index], computeUnit: computeUnit!)
+                        DispatchQueue.main.async {
+                            self.outputImage = output.0?.cgImage
+                            self.loadTimeMs = output.1
+                            self.inferenceTimeMs = output.2
+                            self.loading = false
+                        }
                     }
                     
-                    loading = false
                 }
-//                Button("Run with ANE") {
-//                    outputImage = nil
-//                    loadTimeMs = nil
-//                    inferenceTimeMs = nil
-//                    loading = true
-//                    computeUnit = MLComputeUnits.all
-//                    Task {
-//                        let output = await predict(computeUnit: computeUnit!)
-//                        outputImage = output.0
-//                        loadTimeMs = output.1
-//                        inferenceTimeMs = output.2
-//                        loading = false
-//                    }
-//                }
-//                Button("Run with GPU") {
-//                    outputImage = nil
-//                    loadTimeMs = nil
-//                    inferenceTimeMs = nil
-//                    loading = true
-//                    computeUnit = MLComputeUnits.cpuAndGPU
-//                    Task {
-//                        let output = await predict(computeUnit: computeUnit!)
-//                        outputImage = output.0
-//                        loadTimeMs = output.1
-//                        inferenceTimeMs = output.2
-//                        loading = false
-//                    }
-//                }
-//                Button("Run with CPU") {
-//                    outputImage = nil
-//                    loadTimeMs = nil
-//                    inferenceTimeMs = nil
-//                    loading = true
-//                    computeUnit = MLComputeUnits.cpuOnly
-//                    Task {
-//                        let output = await predict(computeUnit: computeUnit!)
-//                        outputImage = output.0
-//                        loadTimeMs = output.1
-//                        inferenceTimeMs = output.2
-//                        loading = false
-//                    }
-//                }
                 
-            }.padding()
+            }
             
             Text("Model name: briaai/RMBG-1.4")
                 .padding()
             
             if outputImage != nil {
-                Text("Inference Time (ms): \(String(format: "%.0f", inferenceTimeMs!))")
-                Text("Load Time (ms): \(String(format: "%.0f", loadTimeMs!))")
+                Text("Inference Time (ms): \(String(format: "%.0f", inferenceTimeMs!))").bold()
+                Text("Load Time (ms): \(String(format: "%.0f", loadTimeMs!))").bold()
+                    .padding(.bottom)
             }
             
             if loading {
@@ -120,6 +117,15 @@ struct ContentView: View {
                 outputImage = nil
                 loadTimeMs = nil
                 inferenceTimeMs = nil
+            }
+            .padding(.bottom)
+            
+            Button("Next Image") {
+                index = (index + 1) % images.count
+                outputImage = nil
+                loadTimeMs = nil
+                inferenceTimeMs = nil
+                
             }
     
         }

@@ -14,10 +14,10 @@
 		2CABBDC62C2A0A3000AA18EE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2CABBDC52C2A0A3000AA18EE /* Preview Assets.xcassets */; };
 		2CABBDCF2C2A0DCE00AA18EE /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CABBDCE2C2A0DCE00AA18EE /* Utils.swift */; };
 		2CB357EE2C2B41850045461D /* neuralize-logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 2CB357ED2C2B41850045461D /* neuralize-logo.png */; };
-		2CB357F02C2B61AB0045461D /* bria-rmbg-coreml.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2CB357EF2C2B61AB0045461D /* bria-rmbg-coreml.mlpackage */; };
-		2CB357F32C2B72EA0045461D /* bria-rmbg-coreml-2.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2CB357F22C2B72EA0045461D /* bria-rmbg-coreml-2.mlpackage */; };
 		2CB357F62C2B73920045461D /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2CB357F52C2B73920045461D /* Vision.framework */; };
-		2CB357F82C2B7FF00045461D /* bria-rmbg-coreml-3.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2CB357F72C2B7FF00045461D /* bria-rmbg-coreml-3.mlpackage */; };
+		2CF31BEE2C2BC70200AACE4C /* bria-rmbg-coreml.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 2CF31BED2C2BC70200AACE4C /* bria-rmbg-coreml.mlpackage */; };
+		2CF31BF02C2BC88600AACE4C /* example_car.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2CF31BEF2C2BC88600AACE4C /* example_car.jpg */; };
+		2CF31BF42C2BCD8E00AACE4C /* example_tree.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2CF31BF32C2BCD8E00AACE4C /* example_tree.jpg */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,11 +30,11 @@
 		2CABBDC52C2A0A3000AA18EE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		2CABBDCE2C2A0DCE00AA18EE /* Utils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
 		2CB357ED2C2B41850045461D /* neuralize-logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "neuralize-logo.png"; sourceTree = "<group>"; };
-		2CB357EF2C2B61AB0045461D /* bria-rmbg-coreml.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = "bria-rmbg-coreml.mlpackage"; sourceTree = "<group>"; };
 		2CB357F12C2B64C10045461D /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		2CB357F22C2B72EA0045461D /* bria-rmbg-coreml-2.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = "bria-rmbg-coreml-2.mlpackage"; sourceTree = "<group>"; };
 		2CB357F52C2B73920045461D /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
-		2CB357F72C2B7FF00045461D /* bria-rmbg-coreml-3.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = "bria-rmbg-coreml-3.mlpackage"; sourceTree = "<group>"; };
+		2CF31BED2C2BC70200AACE4C /* bria-rmbg-coreml.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; name = "bria-rmbg-coreml.mlpackage"; path = "../../../playgrounds/BriaMaskingPlayground/CoreMLImagePlayground.playground/Resources/bria-rmbg-coreml.mlpackage"; sourceTree = "<group>"; };
+		2CF31BEF2C2BC88600AACE4C /* example_car.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = example_car.jpg; sourceTree = "<group>"; };
+		2CF31BF32C2BCD8E00AACE4C /* example_tree.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = example_tree.jpg; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,7 +52,9 @@
 		2C0ACA142C2A15A500480933 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				2CF31BF32C2BCD8E00AACE4C /* example_tree.jpg */,
 				2CB357ED2C2B41850045461D /* neuralize-logo.png */,
+				2CF31BEF2C2BC88600AACE4C /* example_car.jpg */,
 				2C0ACA152C2A15AF00480933 /* example_input.jpg */,
 			);
 			path = Resources;
@@ -79,9 +81,7 @@
 		2CABBDBD2C2A0A2F00AA18EE /* BriaAIDemo */ = {
 			isa = PBXGroup;
 			children = (
-				2CB357F72C2B7FF00045461D /* bria-rmbg-coreml-3.mlpackage */,
-				2CB357F22C2B72EA0045461D /* bria-rmbg-coreml-2.mlpackage */,
-				2CB357EF2C2B61AB0045461D /* bria-rmbg-coreml.mlpackage */,
+				2CF31BED2C2BC70200AACE4C /* bria-rmbg-coreml.mlpackage */,
 				2C0ACA172C2A177200480933 /* Info.plist */,
 				2C0ACA142C2A15A500480933 /* Resources */,
 				2CABBDCE2C2A0DCE00AA18EE /* Utils.swift */,
@@ -169,7 +169,9 @@
 			files = (
 				2CABBDC62C2A0A3000AA18EE /* Preview Assets.xcassets in Resources */,
 				2CABBDC32C2A0A3000AA18EE /* Assets.xcassets in Resources */,
+				2CF31BF42C2BCD8E00AACE4C /* example_tree.jpg in Resources */,
 				2CB357EE2C2B41850045461D /* neuralize-logo.png in Resources */,
+				2CF31BF02C2BC88600AACE4C /* example_car.jpg in Resources */,
 				2C0ACA162C2A15AF00480933 /* example_input.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -182,11 +184,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				2CABBDC12C2A0A2F00AA18EE /* ContentView.swift in Sources */,
-				2CB357F32C2B72EA0045461D /* bria-rmbg-coreml-2.mlpackage in Sources */,
 				2CABBDBF2C2A0A2F00AA18EE /* BriaAIDemoApp.swift in Sources */,
-				2CB357F82C2B7FF00045461D /* bria-rmbg-coreml-3.mlpackage in Sources */,
-				2CB357F02C2B61AB0045461D /* bria-rmbg-coreml.mlpackage in Sources */,
 				2CABBDCF2C2A0DCE00AA18EE /* Utils.swift in Sources */,
+				2CF31BEE2C2BC70200AACE4C /* bria-rmbg-coreml.mlpackage in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

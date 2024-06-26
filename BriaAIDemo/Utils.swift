@@ -8,56 +8,28 @@ typealias ImageHandler = (UIImage) -> Void
 
 struct ImageModel {
     
-    
-    var originalWidth: Int? = nil
-    var originalHeight: Int? = nil
     var isRunning: Bool = false
-    
-    var inputImage: UIImage? = nil
-    var outputMask: UIImage? = nil
-    
-    public func resizeOutputMask(cgImage: CGImage) -> CGImage {
-        
-        let bitsPerComponent = cgImage.bitsPerComponent
-        let bytesPerRow = cgImage.bytesPerRow
-        let colorSpace = cgImage.colorSpace!
-        let bitmapInfo = cgImage.bitmapInfo
-        
-        let resizeContext = CGContext(data: nil, width: originalWidth!, height: originalHeight!, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: bitmapInfo.rawValue)!
-        
-        resizeContext.interpolationQuality = CGInterpolationQuality.high
-        resizeContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: originalWidth!, height: originalHeight!))
-        
-        let resizedMaskCg = resizeContext.makeImage()!
-        return resizedMaskCg
-    }
 
-
-//    private func visionRequestHandler(_ request: VNRequest, error: Error?) {
-//        print("handler called")
-//        let output =  request.results!.first! as! VNPixelBufferObservation
-//        let ciImage = CIImage(cvPixelBuffer: output.pixelBuffer)
-//        let context = CIContext()
-//        let cgImage = context.createCGImage(ciImage, from: ciImage.extent)!
-//        let imageResized = resizeOutputMask(cgImage: cgImage)
-//        handler(imageResized)
-//    }
-
-
-    public mutating func loadModelAndPredictImage(image: UIImage, computeUnit: MLComputeUnits) async -> UIImage? {
+    public mutating func loadModelAndPredictImage(image: UIImage, computeUnit: MLComputeUnits) async -> (UIImage?, Double?, Double?) {
         
         if isRunning {
-            return nil
+            print("currently running, exiting")
+            return (nil, nil, nil)
         }
         
-        inputImage = image
         isRunning = true
-        originalWidth = image.cgImage!.width
-        originalHeight = image.cgImage!.height
+        
+        let width = image.cgImage!.width
+        let height = image.cgImage!.width
         
         let config = MLModelConfiguration()
         config.computeUnits = computeUnit
-        let model = try! bria_rmbg_coreml_3(configuration: config)
+        
+        let loadStart = Date()
+        let model = try! bria_rmbg_coreml(configuration: config)
+        let loadEnd = Date()
+        let loadTimeMs = loadEnd.timeIntervalSince(loadStart) * 1000
+        
         guard let visionModel = try? VNCoreMLModel(for: model.model) else {
             fatalError("App failed to create a `VNCoreMLModel` instance.")
         }
@@ -71,19 +43,36 @@ struct ImageModel {
 
         // Start the image classification request.
         do {
+            let inferenceStart = Date()
             try await handler.perform(requests)
+            let inferenceEnd = Date()
+            let inferenceTimeMs = inferenceEnd.timeIntervalSince(inferenceStart) * 1000
+            
             let output =  requests[0].results!.first! as! VNPixelBufferObservation
             let ciImage = CIImage(cvPixelBuffer: output.pixelBuffer)
             let context = CIContext()
             let cgImage = context.createCGImage(ciImage, from: ciImage.extent)!
-            let imageResized = resizeOutputMask(cgImage: cgImage)
-            let answer = image.cgImage!.masking(imageResized)
+            
+            // RESIZING
+            let bitsPerComponent = cgImage.bitsPerComponent
+            let bytesPerRow = cgImage.bytesPerRow
+            let colorSpace = CGColorSpaceCreateDeviceGray()
+            let resizeContext = CGContext(data: nil, width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, space: colorSpace, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue).rawValue)!
+            resizeContext.interpolationQuality = CGInterpolationQuality.high
+            resizeContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+            
+            
+            let resizedMaskCg = resizeContext.makeImage()
+            let maskedImage = image.cgImage!.masking(resizedMaskCg!)
+            
             isRunning = false
-            return UIImage(cgImage: answer!)
+            return (UIImage(cgImage: maskedImage!), loadTimeMs, inferenceTimeMs)
             
         } catch {
-            print("Failed to perform text recognition: \(error)")
-            return nil
+            print("Failed to perform inference: \(error)")
+            
+            isRunning = false
+            return (nil, nil, nil)
         }
         
     }
