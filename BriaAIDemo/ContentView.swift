@@ -18,8 +18,13 @@ struct ContentView: View {
     @State private var computeUnit: MLComputeUnits? = nil
     @State private var loading: Bool = false
     
+    @State private var aneClicked: Bool = false
+    @State private var gpuClicked: Bool = false
+    @State private var cpuClicked: Bool = false
+    
     @State private var imageModel = ImageModel()
-
+    
+    
     
     let images = [
         UIImage(contentsOfFile: Bundle.main.path(forResource: "example_car", ofType: "jpg")!)!,
@@ -51,6 +56,9 @@ struct ContentView: View {
                     inferenceTimeMs = nil
                     loading = true
                     computeUnit = MLComputeUnits.all
+                    cpuClicked = false
+                    aneClicked = true
+                    gpuClicked = false
                     Task {
                         let output = await imageModel.loadModelAndPredictImage(image: images[index], computeUnit: computeUnit!)
                         DispatchQueue.main.async {
@@ -60,13 +68,17 @@ struct ContentView: View {
                             self.loading = false
                         }
                     }
-                }
+                }.fontWeight(aneClicked ? .bold : .regular).tint(aneClicked ? .red : .blue)
+                
                 Button("Run with GPU") {
                     outputImage = nil
                     loadTimeMs = nil
                     inferenceTimeMs = nil
                     loading = true
                     computeUnit = MLComputeUnits.cpuAndGPU
+                    cpuClicked = false
+                    aneClicked = false
+                    gpuClicked = true
                     Task {
                         let output = await imageModel.loadModelAndPredictImage(image: images[index], computeUnit: computeUnit!)
                         DispatchQueue.main.async {
@@ -76,13 +88,17 @@ struct ContentView: View {
                             self.loading = false
                         }
                     }
-                }
+                }.fontWeight(gpuClicked ? .bold : .regular).tint(gpuClicked ? .red : .blue)
+                
                 Button("Run with CPU") {
                     outputImage = nil
                     loadTimeMs = nil
                     inferenceTimeMs = nil
                     loading = true
                     computeUnit = MLComputeUnits.cpuOnly
+                    cpuClicked = true
+                    aneClicked = false
+                    gpuClicked = false
                     Task {
                         let output = await imageModel.loadModelAndPredictImage(image: images[index], computeUnit: computeUnit!)
                         DispatchQueue.main.async {
@@ -92,12 +108,11 @@ struct ContentView: View {
                             self.loading = false
                         }
                     }
-                    
-                }
+                }.fontWeight(cpuClicked ? .bold : .regular).tint(cpuClicked ? .red : .blue)
                 
             }
             
-            Text("Model name: briaai/RMBG-1.4")
+            Text("Model: briaai/RMBG-1.4")
                 .padding()
             
             if outputImage != nil {
